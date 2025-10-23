@@ -1,0 +1,37 @@
+stages:
+  - build
+  - push
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+build_image:
+  stage: build
+  image: docker:latest
+  tags:
+    - docker
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH == 'main'
+  script:
+    - echo "A construir a imagem..."
+    - docker build -t $IMAGE_TAG .
+    - docker tag $IMAGE_TAG $IMAGE_LATEST
+    - echo "Imagem construída e taggeada."
+
+push_image:
+  stage: push
+  image: docker:latest
+  tags:
+    - docker
+  needs: [build_image]
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+  script:
+    - echo "A fazer login no GitLab Registry..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "A enviar a imagem (por hash)..."
+    - docker push $IMAGE_TAG
+    - echo "A enviar a imagem (latest)..."
+    - docker push $IMAGE_LATEST

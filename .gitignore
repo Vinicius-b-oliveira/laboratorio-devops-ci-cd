@@ -1,0 +1,6 @@
+lab-api-devops/node_modules/
+
+*.log
+npm-debug.log*
+
+.env
