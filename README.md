@@ -70,49 +70,64 @@ Este repositório está dividido em duas partes principais:
     - Pegue a senha de `root` inicial: `docker compose exec -it gitlab cat /etc/gitlab/initial_root_password`
     - Faça login como `root` e altere a senha.
 
-4.  **Registrar o Runner:**
+### 4. Configurar e Registrar o Runner
 
-    - Na "Admin Area" do GitLab, vá em "CI/CD" > "Runners" e crie um "New instance runner" (adicionando a tag `docker`).
-    - Copie o token de autenticação.
-    - Execute o comando de registro (substituindo o token):
+1.  Na "Admin Area" do seu GitLab (`http://gitlab.local`), vá em **CI/CD** > **Runners**.
+2.  Clique no botão azul **New instance runner**.
+3.  Adicione a tag `docker` e clique em **Create runner**.
+4.  Na página seguinte, **copie o token de autenticação** (ex: `glrt-...`).
+
+5.  Agora, vamos usar esse token para criar o arquivo de configuração do Runner. Volte para o seu terminal (na pasta `lab-devops-infra`):
 
     ```bash
-    docker compose exec -it gitlab-runner gitlab-runner register \
-        --non-interactive \
-        --url "http://gitlab.local" \
-        --token "SEU_TOKEN_AQUI" \
-        --executor "docker" \
-        --docker-image "docker:latest" \
-        --docker-privileged \
-        --docker-volumes "/var/run/docker.sock:/var/run/docker.sock"
+    # (Certifique-se de estar em lab-devops-infra)
+    cd lab-devops-infra
+
+    # Copie o arquivo de exemplo para um arquivo .toml temporário
+    cp config-runner.toml-exemplo config.toml
+
+    # Abra o novo arquivo .toml para editá-lo
+    nano config.toml
     ```
 
-5.  **Corrigir a Rede do Runner:**
+6.  Dentro do `nano`, encontre a linha `token = "COLE_O_TOKEN_GERADO_PELA_UI_AQUI"`.
+7.  **Substitua o placeholder `"COLE_O_TOKEN..."` pelo seu token (`glrt-...`)** que você copiou da UI.
+8.  Salve e feche (Ctrl+O, Enter, Ctrl+X).
 
-    - Para que os jobs possam clonar o repositório, o Runner precisa usar a rede do Compose.
-    - O arquivo `lab-devops-infra/config-runner.toml-exemplo` neste repositório já contém a correção (`network_mode`).
-    - Copie este arquivo de exemplo para dentro do contêiner:
+9.  Agora, copie este arquivo finalizado para dentro do contêiner (isto _é_ o registro):
 
     ```bash
-    cd lab-devops-infra
-    docker cp config-runner.toml-exemplo gitlab-runner:/etc/gitlab-runner/config.toml
+    docker cp config.toml gitlab-runner:/etc/gitlab-runner/config.toml
+
+    # Reinicie o Runner para ele ler a nova config
     docker compose restart gitlab-runner
+
+    # (Opcional) Limpe o arquivo temporário
+    rm config.toml
     cd ..
     ```
 
-6.  **Subir o Código da Aplicação:**
-    - Crie um novo projeto em branco no GitLab (ex: `lab-devops`).
-    - Navegue até a pasta `lab-api-devops`:
+10. **Verificação:** Volte para a UI do GitLab (Admin Area > Runners). A "bolinha" do seu Runner deve ficar verde 🟢 em alguns segundos.
+
+### 5. Subir o Código da Aplicação
+
+1.  Crie um novo projeto em branco no GitLab (ex: `lab-devops`).
+2.  Navegue até a pasta `lab-api-devops`:
     ```bash
-    cd ../lab-api-devops
+    cd lab-api-devops
+    ```
+3.  Execute os comandos Git para enviar o código ao seu **GitLab local**:
+    ```bash
     git init
-    git remote add origin [http://gitlab.local/root/lab-devops.git](http://gitlab.local/root/lab-devops.git)
+    git remote add origin http://gitlab.local/root/lab-devops.git
     git add .
     git commit -m "Commit inicial"
     git push -u origin main
     ```
 
 _Neste ponto, o pipeline será executado automaticamente._
+
+## 6. Slides da Apresentação
 
 Os slides utilizados na apresentação estão disponíveis no Canva:
 [Link para os Slides da Apresentação](https://www.canva.com/design/DAG2p6XqZjo/-PsIE6zcCgx_J2vAv4qqLQ/view?utm_content=DAG2p6XqZjo&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h3c0c53cebd)
