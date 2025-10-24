@@ -78,13 +78,13 @@ Este repositório está dividido em duas partes principais:
 
     ```bash
     docker compose exec -it gitlab-runner gitlab-runner register \
-      --non-interactive \
-      --url "[http://gitlab.local](http://gitlab.local)" \
-      --token "SEU_TOKEN_AQUI" \
-      --executor "docker" \
-      --docker-image "docker:latest" \
-      --docker-privileged \
-      --docker-volumes "/var/run/docker.sock:/var/run/docker.sock"
+        --non-interactive \
+        --url "http://gitlab.local" \
+        --token "SEU_TOKEN_AQUI" \
+        --executor "docker" \
+        --docker-image "docker:latest" \
+        --docker-privileged \
+        --docker-volumes "/var/run/docker.sock:/var/run/docker.sock"
     ```
 
 5.  **Corrigir a Rede do Runner:**
