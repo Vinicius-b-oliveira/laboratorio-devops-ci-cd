@@ -1,10 +1,13 @@
 stages:
   - build
   - push
+  - deploy
 
 variables:
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
+
+  APP_CONTAINER_NAME: lab-api-n3
 
 build_image:
   stage: build
@@ -15,7 +18,7 @@ build_image:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_COMMIT_BRANCH == 'main'
   script:
-    - echo "A construir a imagem..."
+    - echo "A construir e testar a imagem (com RUN npm test)..."
     - docker build -t $IMAGE_TAG .
     - docker tag $IMAGE_TAG $IMAGE_LATEST
     - echo "Imagem construída e taggeada."
@@ -35,3 +38,27 @@ push_image:
     - docker push $IMAGE_TAG
     - echo "A enviar a imagem (latest)..."
     - docker push $IMAGE_LATEST
+
+deploy_app:
+  stage: deploy
+  image: docker:latest
+  tags:
+    - docker
+  needs: [push_image]
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+  script:
+    - echo "Iniciando deploy na máquina host (via DooD)..."
+
+    - echo "Autenticando no GitLab Registry para o pull..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+    - docker stop $APP_CONTAINER_NAME || true
+
+    - docker rm $APP_CONTAINER_NAME || true
+
+    - docker pull $IMAGE_LATEST
+
+    - echo "Subindo o novo contêiner na porta 8081..."
+    - docker run -d -p 8081:3000 --name $APP_CONTAINER_NAME $IMAGE_LATEST
+    - echo "Deploy concluído!"
